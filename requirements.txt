@@ -1,0 +1,11 @@
+fastapi[standard]
+uvicorn
+sqlalchemy[asyncio]
+aiosqlite
+httpx
+openai
+sqlparse
+pydantic-settings
+python-dotenv
+pytest
+pytest-asyncio
