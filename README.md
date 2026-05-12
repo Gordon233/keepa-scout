@@ -79,6 +79,3 @@ bash scripts/demo.sh
 
 导入 `keepa-scout.postman_collection.json` 到 Postman，包含 33 个请求覆盖所有端点和 4 个 /chat 场景，每个请求带自动化断言。
 
-## Loom 视频
-
-[视频链接](TODO: 录制后补链接)
