@@ -6,42 +6,43 @@
 
 **GPT-5.5 via OpenRouter** — 指令跟随好，支持 structured outputs，自己工作项目有使用。
 
-## Prompt 迭代（v2 → v3）
+## Prompt 迭代
 
-### v2 的域外检测：关键词匹配
-
-```python
-_DOMAIN_TERMS = {"roi", "asin", "buybox", "eligib", "amazon", "cost", ...}
-
-def is_out_of_scope(question):
-    return not any(term in question.lower() for term in _DOMAIN_TERMS)
-```
-
-**失败 case：** `/chat` 场景 C 第 2 轮 — 先问"Top 3 by ROI"，再问"What's the weather in NYC?"。因为会话已有上下文（last_result_asins 非空），关键词检查被跳过（否则"the second one"等代词消息会被误拦）。天气问题漏到 LLM，生成了伪造 SQL `SELECT 'Weather data is not available...' AS message`，而非客户要求的固定拒答。
-
-### v3 修复：让 LLM 判断域外
-
-**`/ask`** — 关键词匹配换成轻量 LLM 分类调用：
+### v1 prompt
 
 ```
-system: "You are a scope classifier for an Amazon ASIN arbitrage analysis tool.
-Answer ONLY 'yes' or 'no'.
-- 'yes' = question is about Amazon arbitrage, ASINs, products, pricing, ROI...
-- 'no' = weather, cooking, sports, general knowledge...
-Domain concepts like 'What is ROI?' are IN scope (yes)."
+system: "You are a SQL assistant. Answer user questions with SQL."
 ```
 
-**`/chat`** — 在 structured output JSON schema 中加 `is_out_of_scope` 布尔字段，LLM 在同一次调用中同时判断域外 + 生成 SQL（零额外延迟）：
+**失败 case 1：** 问 "Show me ASINs with ROI over 25%"，LLM 回答 "There are some results with high ROI" — 不引用具体 ASIN 和数字。
 
-```json
-{
-  "sql": "SELECT ...",
-  "active_filters_json": "{\"eligible_only\": true}",
-  "is_out_of_scope": false
-}
+**失败 case 2：** 问 "add a product to the database"，LLM 生成 `INSERT INTO asins VALUES (...)` — 非 SELECT 语句。
+
+### v2 prompt（当前版本）
+
+```
+system: "You are a SQL assistant. Given the following table schema,
+generate a single SQLite SELECT query that answers the user's question.
+
+Table: asins
+Columns:
+  asin TEXT PRIMARY KEY
+  buybox_price REAL              -- BuyBox price in USD
+  computed_roi_pct REAL          -- ROI percentage
+  eligible BOOLEAN
+  filter_failed TEXT             -- first failed rule, NULL if eligible
+  ...
+Notes:
+  - eligible = 1 for eligible
+  - ORDER BY computed_roi_pct DESC NULLS LAST for ROI ranking
+
+Return ONLY the raw SQL. No markdown, no explanation, no code fences."
 ```
 
-当 `is_out_of_scope: true` 时，返回固定拒答 `"I can only help with Amazon ASIN arbitrage analysis."`，保留全部会话状态。修复后该 case 正确拒答。
+三个改动：
+1. 注入完整 TABLE_SCHEMA — 模型首次就能生成有效 SQL
+2. 明确 "Return ONLY the raw SQL" — 消除 markdown 包裹
+3. 拆成两次 LLM 调用：第一次生成 SQL，第二次传入结果让 LLM 总结并"引用具体 ASIN 和数字" — 回答从笼统变为有数据支撑
 
 ## AI 工具披露
 
