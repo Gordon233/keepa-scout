@@ -77,5 +77,5 @@ bash scripts/demo.sh
 
 ## Postman 测试集
 
-导入 `keepa-scout.postman_collection.json` 到 Postman，包含 33 个请求覆盖所有端点和 4 个 /chat 场景，每个请求带自动化断言。
+导入 `keepa-scout.postman_collection.json` 到 Postman，包含 33 个请求覆盖所有端点和 4 个 /chat 场景。
 
