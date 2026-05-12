@@ -67,6 +67,18 @@ curl -X POST http://localhost:8000/chat \
   -d '{"session_id": "s1", "message": "Tell me about the second one"}'
 ```
 
-## 演示
+## 演示脚本
 
-[Loom 视频](TODO: 录制后补链接)
+启动服务后，运行 demo 脚本一键演示所有端点：
+
+```bash
+bash scripts/demo.sh
+```
+
+## Postman 测试集
+
+导入 `keepa-scout.postman_collection.json` 到 Postman，包含 33 个请求覆盖所有端点和 4 个 /chat 场景，每个请求带自动化断言。
+
+## Loom 视频
+
+[视频链接](TODO: 录制后补链接)
